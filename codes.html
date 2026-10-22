@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>أكواد التفعيل والتحديث</title>
+<!-- [التفعيل] أداة توليد أكواد التفعيل — على جهاز صاحب البرنامج بس، بتشتغل من غير إنترنت.
+     المفتاح الخاص بيتقري من الملف وقت الاستخدام بس (مابيتحفظش في أي مكان). سجل الأكواد اللي اتعملت (من غير المفتاح)
+     محفوظ في المتصفح ده بس. الصيغة نفسها اللي في src/utils/license.js (اختبار: scripts/licenseGenerator.test.mjs). -->
+<style>
+  .pages-box { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px 12px; margin-top: 4px; }
+  .pages-box label { display: flex; align-items: center; gap: 6px; font-weight: normal; margin: 0; cursor: pointer; }
+  .pages-box input { width: auto; margin: 0; }
+  :root { --bg:#F4F8F7; --surface:#fff; --text:#1E2A28; --muted:#5B6E6B; --border:#E1E9E7; --primary:#1F6F5C; --primarySoft:#E5F2EE; --danger:#B3453A; --dangerSoft:#F8E9E7; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0F1716; --surface:#17211F; --text:#E6EFEC; --muted:#9DB1AC; --border:#2A3A37; --primary:#4FB79A; --primarySoft:#1C2E2A; --danger:#E07A6E; --dangerSoft:#3A2220; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family: system-ui, "Segoe UI", Tahoma, sans-serif; font-size:15px; }
+  main { max-width: 760px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-top: 14px; }
+  label { display:block; font-weight:600; margin: 10px 0 4px; font-size:14px; }
+  input[type=text], input[type=password], input[type=number], input[type=date], select, textarea { width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); font: inherit; }
+  textarea { font-family: ui-monospace, Consolas, monospace; font-size: 12px; direction: ltr; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .row > * { flex: 1 1 200px; }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; }
+  .chips label { font-weight:500; margin:0; padding:7px 12px; border:1px solid var(--border); border-radius:999px; cursor:pointer; }
+  .chips input { margin-inline-end:6px; }
+  button { padding:10px 16px; border:0; border-radius:10px; background:var(--primary); color:#fff; font: inherit; font-weight:700; cursor:pointer; }
+  button.secondary { background: var(--primarySoft); color: var(--primary); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .ok { background:var(--primarySoft); color:var(--primary); padding:8px 10px; border-radius:10px; font-weight:600; }
+  .err { background:var(--dangerSoft); color:var(--danger); padding:8px 10px; border-radius:10px; font-weight:600; }
+  table { width:100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: start; padding: 6px; border-bottom: 1px solid var(--border); }
+  .ltr { direction:ltr; unicode-bidi: embed; }
+  .table-wrap { overflow-x: auto; }
+  a { color: var(--primary); }
+  /* [الموبايل] خانات 16px (الآيفون بيعمل زووم لو أصغر) وأزرار بعرض الشاشة */
+  @media (max-width: 600px) {
+    body { font-size: 16px; }
+    input[type=text], input[type=password], input[type=number], input[type=date], select, textarea { font-size: 16px; padding: 11px 12px; }
+    textarea { font-size: 14px; }
+    button { width: 100%; padding: 13px 16px; }
+    .row > div[style*="flex:0 0 auto"] { flex: 1 1 100% !important; }
+    .chips label { padding: 9px 14px; }
+    #short { font-size: 24px !important; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>أكواد التفعيل والتحديث</h1>
+  <div class="muted">نسخة المالك ونسخة العميل والأونلاين. الكود مربوط بكود الجهاز ومدته محددة، ومحدش يقدر يعدّله من غير المفتاح الخاص.</div>
+
+  <div class="card">
+    <label for="keyFile">1) المفتاح الخاص (doctorm-license-PRIVATE.pem)</label>
+    <div id="vaultOpen" style="display:none">
+      <div class="ok">المفتاح محفوظ على الجهاز ده (متشفّر بكلمة سر) — اكتب كلمة السر بتاعته</div>
+      <div class="row" style="margin-top:8px;align-items:flex-end">
+        <div><input type="password" id="vaultPw" autocomplete="current-password" placeholder="كلمة السر"></div>
+        <div style="flex:0 0 auto"><button id="vaultUnlock">فتح المفتاح</button></div>
+      </div>
+      <div class="muted" style="margin-top:6px"><a href="#" id="vaultForget">مسح المفتاح من الجهاز ده</a> · أو اختار الملف تحت</div>
+    </div>
+    <!-- [الموبايل] من غير accept: الآيفون بيقفل ملفات .pem لو الامتداد محدد — بنتأكد من المحتوى نفسه -->
+    <input type="file" id="keyFile">
+    <div class="muted" style="margin-top:6px">بيتقري وقت الاستخدام بس ومابيتحفظش (إلا لو اخترت تحفظه تحت بكلمة سر). ماتبعتهوش لحد ولا ترفعه في أي مكان.</div>
+    <div id="keyState" style="margin-top:8px"></div>
+    <div id="vaultSave" style="display:none;margin-top:10px">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="vaultChk" style="width:auto">احفظه على الجهاز ده بكلمة سر (للموبايل — مش هتحتاج تختار الملف كل مرة)</label>
+      <div id="vaultFields" style="display:none">
+        <div class="row">
+          <div><label for="vaultNew">كلمة سر (8 على الأقل)</label><input type="password" id="vaultNew" autocomplete="new-password"></div>
+          <div><label for="vaultNew2">تأكيد كلمة السر</label><input type="password" id="vaultNew2" autocomplete="new-password"></div>
+        </div>
+        <div class="muted" style="margin-top:6px">بيتحفظ متشفّر في المتصفح ده بس. لو الموبايل ضاع محدش يقدر يستخدمه من غير كلمة السر — اختار كلمة سر مش سهلة وماتكتبهاش في أي مكان. توكن GitHub (لو كاتبه) بيتحفظ معاه.</div>
+        <div style="margin-top:8px"><button class="secondary" id="vaultStore">احفظ على الجهاز ده</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>2) النسخة</label>
+    <div class="chips" id="editions">
+      <label><input type="radio" name="edition" value="client" checked>نسخة العميل</label>
+      <label><input type="radio" name="edition" value="owner">نسخة المالك</label>
+      <label><input type="radio" name="edition" value="online">الأونلاين</label>
+      <label><input type="radio" name="edition" value="update">كود تحديث</label>
+    </div>
+    <div class="muted" id="updHint" style="display:none;margin-top:6px">كود التحديث بيخلّي جهاز العميل يشوف ويحمّل التحديثات لحد النسخة اللي تكتبها (من غيره البرنامج بيقول «محدّث»).
+      مربوط بكود الجهاز. والأونلاين بتاع العميل بيتحدّث لنفس النسخة لوحده بعد ما المحلي يتحدّث.</div>
+
+    <div class="row">
+      <div>
+        <label for="clinic">اسم العيادة</label>
+        <input type="text" id="clinic" maxlength="120">
+      </div>
+      <div>
+        <label for="machine">كود الجهاز</label>
+        <input type="text" id="machine" class="ltr" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19">
+      </div>
+    </div>
+
+    <div id="updBox" style="display:none">
+      <label for="upTo">لحد النسخة (شامل)</label>
+      <input type="text" id="upTo" class="ltr" placeholder="1.8.0" maxlength="14">
+    </div>
+    <div id="licOnly">
+    <label>المدة</label>
+    <div class="chips" id="durations">
+      <label><input type="radio" name="dur" value="d15">15 يوم</label>
+      <label><input type="radio" name="dur" value="m1">شهر</label>
+      <label><input type="radio" name="dur" value="mN">عدد شهور</label>
+      <label><input type="radio" name="dur" value="y1" checked>سنة</label>
+    </div>
+    <div class="row">
+      <div id="monthsBox" style="display:none">
+        <label for="months">عدد الشهور</label>
+        <input type="number" id="months" min="1" max="60" value="3">
+      </div>
+      <div>
+        <label for="start">من يوم</label>
+        <input type="date" id="start">
+      </div>
+      <div>
+        <label>لحد يوم (شامل)</label>
+        <div id="endPreview" class="ok ltr" style="text-align:center">—</div>
+      </div>
+    </div>
+
+    <label>الصفحات المتاحة للعميل (شيل العلامة من أي صفحة مش عايزه يشوفها — بتختفي للكل حتى الأدمن، وبياناتها مابتتمسحش)</label>
+    <div id="pagesBox" class="pages-box"></div>
+    <div class="muted" style="margin-top:4px">دايماً شغالة (مابتتقفلش): الصفحة الرئيسية، الأيام، المرضى، المستخدمين، النسخ الاحتياطي، الإعدادات. ·
+      <a href="#" id="pagesAll">علّم على الكل</a></div>
+
+    <div class="row">
+      <div><label for="maxUsers">أقصى عدد مستخدمين (شامل الأدمن) — فاضي = من غير حد</label><input type="number" id="maxUsers" min="1" max="9999" placeholder="من غير حد"></div>
+      <div><label for="maxDoctors">أقصى عدد أطباء — فاضي = من غير حد</label><input type="number" id="maxDoctors" min="1" max="9999" placeholder="من غير حد"></div>
+    </div>
+    <div class="muted" style="margin-top:4px">الحد بيمنع الإضافة بس — اللي موجود عند العميل مابيتمسحش.</div>
+
+    <label for="features">مزايا إضافية لعميل بعينه (اختياري — أسماء إنجليزي مفصولة بفاصلة)</label>
+    <input type="text" id="features" class="ltr" placeholder="lab-extra, custom-report">
+    </div>
+
+    <label for="ghToken">رفع الكود القصير على GitHub (ريبو التحديثات) — توكن GitHub (مابيتحفظش — إلا مع المفتاح المحفوظ بكلمة سر)</label>
+    <div class="row">
+      <div><input type="password" id="ghToken" class="ltr" placeholder="github_pat_…" autocomplete="off"></div>
+      <div><input type="text" id="ghRepo" class="ltr" value="mohamedmorshd23-coder/DM-UPDATES"></div>
+    </div>
+    <div class="muted" style="margin-top:4px">من غير توكن: نزّل ملف الكود وارفعه بإيدك في فولدر <span class="ltr">licenses</span> في نفس الريبو.</div>
+
+    <div style="margin-top:14px"><button id="gen" disabled>3) اعمل الكود</button></div>
+    <div id="genErr" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card" id="outCard" style="display:none">
+    <label>الكود القصير (ده اللي العميل يكتبه)</label>
+    <div id="short" class="ok ltr" style="text-align:center;font-size:28px;letter-spacing:3px;font-family:ui-monospace,Consolas,monospace"></div>
+    <div id="upState" style="margin-top:8px"></div>
+    <div class="row" style="margin-top:8px">
+      <button class="secondary" id="copyShort">نسخ الكود القصير</button>
+      <button class="secondary" id="copyMsg">نسخ رسالة للعميل</button>
+      <button class="secondary" id="upload">رفع على GitHub</button>
+      <button class="secondary" id="download">تنزيل ملف الكود</button>
+    </div>
+    <label for="out">الكود الطويل (بديل لو العميل مفيش عنده إنترنت وقت التفعيل)</label>
+    <textarea id="out" rows="3" readonly></textarea>
+    <div style="margin-top:8px"><button class="secondary" id="copyCode">نسخ الكود الطويل</button></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="align-items:center">
+      <strong>الأكواد اللي اتعملت على الجهاز ده</strong>
+      <div style="flex:0 0 auto"><button class="secondary" id="exportLog">تصدير CSV</button></div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>التاريخ</th><th>العيادة</th><th>النسخة</th><th>كود الجهاز</th><th>لحد</th><th>الكود القصير</th></tr></thead>
+      <tbody id="log"></tbody>
+    </table></div>
+  </div>
+</main>
+
+<script>
+/*LICENSE-CORE-START — نفس src/utils/license.js (الصيغة والمدد) */
+var LICENSE_PREFIX = "DM1-";
+var B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+function b64urlEncode(bytes) {
+  var out = "", i = 0;
+  for (; i + 2 < bytes.length; i += 3) { var n = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2]; out += B64[n >> 18 & 63] + B64[n >> 12 & 63] + B64[n >> 6 & 63] + B64[n & 63]; }
+  if (i < bytes.length) { var n2 = (bytes[i] << 16) | ((bytes[i + 1] || 0) << 8); out += B64[n2 >> 18 & 63] + B64[n2 >> 12 & 63] + (i + 1 < bytes.length ? B64[n2 >> 6 & 63] : ""); }
+  return out;
+}
+function canonicalPayload(p) {
+  return JSON.stringify({ v: 1, k: p.k, n: String(p.n).trim(), m: p.m, s: p.s, e: p.e, f: (p.f || []).slice().sort(), id: p.id });
+}
+function addDuration(startISO, o) {
+  var days = (o && o.days) || 0, months = (o && o.months) || 0;
+  var parts = startISO.split("-").map(Number), y = parts[0], m = parts[1], d = parts[2];
+  var dt = new Date(Date.UTC(y, m - 1, d));
+  if (months) {
+    var target = new Date(Date.UTC(y, m - 1 + months, 1));
+    var last = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+    target.setUTCDate(Math.min(d, last)); dt.setTime(target.getTime());
+  }
+  if (days) dt.setUTCDate(dt.getUTCDate() + days);
+  dt.setUTCDate(dt.getUTCDate() - 1);
+  return dt.toISOString().slice(0, 10);
+}
+function pemToDer(pem) {
+  var b = String(pem).replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+  var bin = atob(b), out = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function importPrivateKey(pem) {
+  return crypto.subtle.importKey("pkcs8", pemToDer(pem), { name: "Ed25519" }, true, ["sign"]);
+}
+// المفتاح العام المدمج في البرنامج (server/licensePublicKey.js) — عشان نتأكد إن الملف هو المفتاح الصح
+var EXPECTED_PUBLIC_SPKI = "MCowBQYDK2VwAyEAXzMh178MLXr+i8BQ/AhtlJA7kyZcz+20Ohu5o5hdw6k=";
+function publicXFromSpki(spkiB64) { var der = pemToDer(spkiB64); return b64urlEncode(der.slice(der.length - 32)); }
+function randomId() { var b = crypto.getRandomValues(new Uint8Array(6)); return Array.prototype.map.call(b, function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }
+function makePayload(f) {
+  var dur = f.duration === "d15" ? { days: 15 } : f.duration === "m1" ? { months: 1 } : f.duration === "mN" ? { months: Number(f.months) } : { months: 12 };
+  return { v: 1, k: f.edition, n: String(f.clinic).trim(), m: f.edition === "online" ? "*" : String(f.machine).trim().toUpperCase(), s: f.start, e: addDuration(f.start, dur), f: f.features || [], id: f.id || randomId() };
+}
+function validateFields(f) {
+  if (!String(f.clinic || "").trim()) return "اكتب اسم العيادة";
+  if (f.edition !== "online" && !/^[A-Z0-9]{4}(-[A-Z0-9]{4}){3}$/.test(String(f.machine || "").trim().toUpperCase())) return "كود الجهاز لازم يبقى بالشكل XXXX-XXXX-XXXX-XXXX (من صفحة الإعدادات أو أول تشغيل عند العميل)";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(f.start || "")) return "اختار تاريخ البداية";
+  if (f.duration === "mN" && !(Number(f.months) >= 1 && Number(f.months) <= 60)) return "عدد الشهور من 1 لـ 60";
+  if ((f.features || []).some(function (x) { return !/^[a-z0-9_-]{1,40}$/.test(x); })) return "أسماء المزايا: حروف إنجليزي صغيرة وأرقام و - و _ بس";
+  return "";
+}
+function signPayload(key, payload) {
+  var text = canonicalPayload(payload);
+  return crypto.subtle.sign({ name: "Ed25519" }, key, new TextEncoder().encode(text)).then(function (sig) {
+    return { code: LICENSE_PREFIX + b64urlEncode(new TextEncoder().encode(text)) + "." + b64urlEncode(new Uint8Array(sig)), payload: payload };
+  });
+}
+/* الكود القصير — نفس src/utils/license.js (اسم الملف + مفتاح التشفير من الكود القصير) */
+var SHORT_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", SHORT_LEN = 10, SHORT_KDF_SALT = "doctorm-license-short-v1", SHORT_KDF_ITERATIONS = 200000, SHORT_FILE_PREFIX = "DML1.";
+function normalizeShortCode(s) { var c = String(s || "").toUpperCase().replace(/[\s\-_.]+/g, ""); if (c.length !== SHORT_LEN) return null; for (var i = 0; i < c.length; i++) if (SHORT_ALPHABET.indexOf(c[i]) < 0) return null; return c; }
+function formatShortCode(c) { return c.slice(0, 5) + "-" + c.slice(5); }
+function randomShortCode() { var b = crypto.getRandomValues(new Uint8Array(SHORT_LEN)), s = ""; for (var i = 0; i < b.length; i++) s += SHORT_ALPHABET[b[i] & 31]; return s; }
+function deriveShort(short) {
+  var enc = new TextEncoder(), c = normalizeShortCode(short);
+  return crypto.subtle.importKey("raw", enc.encode(c), "PBKDF2", false, ["deriveBits"]).then(function (base) {
+    return crypto.subtle.deriveBits({ name: "PBKDF2", salt: enc.encode(SHORT_KDF_SALT), iterations: SHORT_KDF_ITERATIONS, hash: "SHA-256" }, base, 384);
+  }).then(function (buf) {
+    var bits = new Uint8Array(buf), id = Array.prototype.map.call(bits.slice(0, 16), function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+    return crypto.subtle.importKey("raw", bits.slice(16, 48), "AES-GCM", false, ["encrypt"]).then(function (key) { return { id: id, key: key }; });
+  });
+}
+function sealLicenseCode(fullCode, short) {
+  return deriveShort(short).then(function (d) {
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, d.key, new TextEncoder().encode(String(fullCode).replace(/\s+/g, ""))).then(function (ct) {
+      return { id: d.id, text: SHORT_FILE_PREFIX + b64urlEncode(iv) + "." + b64urlEncode(new Uint8Array(ct)) };
+    });
+  });
+}
+function githubUpload(token, repo, id, text, fetchImpl) {
+  return (fetchImpl || fetch)("https://api.github.com/repos/" + repo + "/contents/licenses/" + id + ".dml", {
+    method: "PUT", headers: { Authorization: "Bearer " + token, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+    body: JSON.stringify({ message: "license " + id.slice(0, 8), content: btoa(text) }),
+  }).then(function (r) {
+    if (r.status === 201 || r.status === 200) return true;
+    var msg = r.status === 401 ? "توكن GitHub غلط أو منتهي" : r.status === 404 ? "الريبو مش موجود أو التوكن مالوش صلاحية الكتابة عليه" : r.status === 422 ? "الملف ده مرفوع قبل كده" : "GitHub رد بـ " + r.status;
+    throw new Error(msg);
+  });
+}
+/* [كود التحديث] نفس src/utils/updateCode.js */
+var UPDATE_CODE_PREFIX = "DMU1-";
+function canonicalUpdatePayload(p) { return JSON.stringify({ v: 1, k: "update", n: String(p.n).trim(), m: p.m, u: p.u, id: p.id }); }
+function makeUpdatePayload(f) { return { v: 1, k: "update", n: String(f.clinic).trim(), m: String(f.machine).trim().toUpperCase(), u: String(f.upTo || "").trim(), id: f.id || randomId() }; }
+function validateUpdateFields(f) {
+  if (!String(f.clinic || "").trim()) return "اكتب اسم العيادة";
+  if (!/^[A-Z0-9]{4}(-[A-Z0-9]{4}){3}$/.test(String(f.machine || "").trim().toUpperCase())) return "كود الجهاز لازم يبقى بالشكل XXXX-XXXX-XXXX-XXXX (من الإعدادات ← التحديثات عند العميل)";
+  if (!/^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(String(f.upTo || "").trim())) return "اكتب النسخة بالشكل 1.8.0";
+  return "";
+}
+function signUpdatePayload(key, payload) {
+  var text = canonicalUpdatePayload(payload);
+  return crypto.subtle.sign({ name: "Ed25519" }, key, new TextEncoder().encode(text)).then(function (sig) {
+    return { code: UPDATE_CODE_PREFIX + b64urlEncode(new TextEncoder().encode(text)) + "." + b64urlEncode(new Uint8Array(sig)), payload: payload };
+  });
+}
+
+// [الموبايل] حفظ المفتاح (والتوكن) على الجهاز متشفّر بكلمة سر — اختياري. PBKDF2-SHA256 (600 ألف لفّة) ← AES-GCM-256.
+// من غير كلمة السر الصح الملف المحفوظ مالوش أي قيمة. vault = { v, s (salt), i (iv), c (المشفّر) } كلها base64.
+var VAULT_ITERATIONS = 600000;
+function b64(buf) { var b = new Uint8Array(buf), s = ""; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); }
+function unb64(t) { var s = atob(t), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+function vaultKey(password, salt, iterations) {
+  return crypto.subtle.importKey("raw", new TextEncoder().encode(String(password)), "PBKDF2", false, ["deriveKey"]).then(function (base) {
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt: salt, iterations: iterations, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  });
+}
+function vaultPasswordError(pw, pw2) {
+  if (String(pw || "").length < 8) return "كلمة السر لازم تكون 8 حروف/أرقام على الأقل";
+  if (pw2 !== undefined && pw !== pw2) return "كلمة السر وتأكيدها مش زي بعض";
+  return "";
+}
+function sealVault(password, data, iterations) {
+  var it = iterations || VAULT_ITERATIONS;
+  var salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  return vaultKey(password, salt, it).then(function (k) {
+    return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, k, new TextEncoder().encode(JSON.stringify(data)));
+  }).then(function (ct) { return { v: 1, n: it, s: b64(salt), i: b64(iv), c: b64(ct) }; });
+}
+function openVault(password, vault) {
+  if (!vault || vault.v !== 1) return Promise.reject(new Error("الملف المحفوظ مش مفهوم"));
+  return vaultKey(password, unb64(vault.s), vault.n || VAULT_ITERATIONS).then(function (k) {
+    return crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(vault.i) }, k, unb64(vault.c));
+  }).then(function (pt) { return JSON.parse(new TextDecoder().decode(pt)); }, function () { throw new Error("كلمة السر غلط"); });
+}
+/*LICENSE-CORE-END*/
+
+(function () {
+  if (typeof document === "undefined") return;
+  var $ = function (id) { return document.getElementById(id); };
+  var key = null;
+  var cairoToday = function () { return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); };
+  var EDITION = { client: "نسخة العميل", owner: "نسخة المالك", online: "الأونلاين", update: "كود تحديث" };
+  var LOG_KEY = "doctorm-license-log";
+  var readLog = function () { try { return JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); } catch (e) { return []; } };
+  var writeLog = function (l) { try { localStorage.setItem(LOG_KEY, JSON.stringify(l)); } catch (e) { /* المتصفح مانع التخزين */ } };
+  var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+
+  // [صفحات حسب الاشتراك] نفس LOCKABLE_PAGES في src/utils/licensePages.js (اختبار بيتأكد إنهم متطابقين)
+  var LOCKABLE_PAGES = [
+    ["appointments", "حجز موعد"], ["doctors", "الأطباء"], ["lab", "المعمل"], ["unpaid", "أموال لم يتم سدادها"],
+    ["claims", "مطالبة الشركات"], ["doctorAccounts", "حسابات الأطباء"], ["drugs", "مخزون الأدوية والروشتات"], ["stock", "المخزن"],
+    ["messages", "رسائل واتساب"], ["priceCatalog", "قائمة الأسعار"], ["expenses", "المصروفات"], ["salaries", "المرتبات"],
+    ["dashboard", "لوحة التحكم"], ["trends", "الحسابات والمقارنات"], ["reports", "التقارير"], ["analytics", "تحليل البيانات"],
+    ["summary", "الملخص الشهري"], ["monthlyDetailed", "الملخص الشهري مفصل"], ["audit", "متابعة العمل"]
+  ];
+  $("pagesBox").innerHTML = LOCKABLE_PAGES.map(function (p) {
+    return "<label><input type='checkbox' class='pg' data-key='" + p[0] + "' checked> " + p[1] + "</label>";
+  }).join("");
+  $("pagesAll").addEventListener("click", function (e) { e.preventDefault(); document.querySelectorAll("input.pg").forEach(function (c) { c.checked = true; }); refresh(); });
+  // [حدود الاشتراك] "u-<عدد>" و"d-<عدد>" — نفس featuresForLimits في src/utils/licensePages.js
+  function limitTokens() {
+    var out = [];
+    var n = function (v) { v = Number(v); return Number.isInteger(v) && v >= 1 && v <= 9999 ? v : null; };
+    if (n($("maxUsers").value)) out.push("u-" + n($("maxUsers").value));
+    if (n($("maxDoctors").value)) out.push("d-" + n($("maxDoctors").value));
+    return out;
+  }
+  function lockedTokens() {
+    var out = [];
+    document.querySelectorAll("input.pg").forEach(function (c) { if (!c.checked) out.push("x-" + c.getAttribute("data-key").toLowerCase()); });
+    return out;
+  }
+
+  function fields() {
+    return {
+      edition: document.querySelector("input[name=edition]:checked").value,
+      clinic: $("clinic").value, machine: $("machine").value,
+      duration: document.querySelector("input[name=dur]:checked").value, months: $("months").value,
+      start: $("start").value, upTo: $("upTo").value,
+      features: $("features").value.split(",").map(function (x) { return x.trim(); }).filter(Boolean)
+        .filter(function (x) { return !/^(x|u|d)-/.test(x); }).concat(lockedTokens()).concat(limitTokens()),
+    };
+  }
+  function refresh() {
+    var f = fields();
+    $("monthsBox").style.display = f.duration === "mN" ? "" : "none";
+    var upd = f.edition === "update";
+    $("licOnly").style.display = upd ? "none" : ""; $("updBox").style.display = upd ? "" : "none"; $("updHint").style.display = upd ? "" : "none";
+    $("gen").textContent = upd ? "3) اعمل كود التحديث" : "3) اعمل الكود";
+    $("machine").disabled = f.edition === "online";
+    if (f.edition === "online") $("machine").value = "";
+    $("machine").placeholder = f.edition === "online" ? "الأونلاين مش مربوط بجهاز" : "XXXX-XXXX-XXXX-XXXX";
+    try { $("endPreview").textContent = f.start && (f.duration !== "mN" || Number(f.months) >= 1) ? makePayload(f).e : "—"; } catch (e) { $("endPreview").textContent = "—"; }
+    $("gen").disabled = !key;
+  }
+  function renderLog() {
+    $("log").innerHTML = readLog().slice().reverse().map(function (r) {
+      return "<tr><td class='ltr'>" + esc(r.at) + "</td><td>" + esc(r.n) + "</td><td>" + esc(EDITION[r.k] || r.k) + "</td><td class='ltr'>" + esc(r.m) + "</td><td class='ltr'>" + esc(r.e) + "</td><td class='ltr'>" + esc(r.short || r.id) + "</td></tr>";
+    }).join("") || "<tr><td colspan='6' class='muted'>لسه مفيش</td></tr>";
+  }
+
+  $("start").value = cairoToday();
+  document.querySelectorAll("input,select").forEach(function (el) { el.addEventListener("input", refresh); el.addEventListener("change", refresh); });
+
+  // [الموبايل] المفتاح من ملف أو من الخزنة المحفوظة — نفس التحقق (لازم يطابق المفتاح العام المدمج)
+  var VAULT_KEY = "doctorm-license-vault";
+  var keyPem = "";
+  var readVault = function () { try { return JSON.parse(localStorage.getItem(VAULT_KEY) || "null"); } catch (e) { return null; } };
+  var showVault = function () {
+    var has = !!readVault();
+    $("vaultOpen").style.display = has && !key ? "" : "none";
+    $("vaultSave").style.display = key && keyPem && !has ? "" : "none";
+  };
+  function useKeyPem(pem, from) {
+    return importPrivateKey(pem).then(function (k) {
+      return crypto.subtle.exportKey("jwk", k).then(function (jwk) {
+        if (jwk.x !== publicXFromSpki(EXPECTED_PUBLIC_SPKI)) throw new Error("ده مش مفتاح أكواد التفعيل بتاع البرنامج (يمكن مفتاح التحديثات؟)");
+        key = k; keyPem = pem;
+        $("keyState").innerHTML = "<div class='ok'>" + (from === "vault" ? "المفتاح اتفتح من الجهاز ✓ — مطابق للبرنامج" : "المفتاح اتحمّل ✓ — مطابق للبرنامج") + "</div>";
+        refresh(); showVault();
+      });
+    });
+  }
+  $("vaultChk").addEventListener("change", function () { $("vaultFields").style.display = $("vaultChk").checked ? "" : "none"; });
+  $("vaultStore").addEventListener("click", function () {
+    var pw = $("vaultNew").value, bad = vaultPasswordError(pw, $("vaultNew2").value);
+    if (bad) { $("keyState").innerHTML = "<div class='err'>" + esc(bad) + "</div>"; return; }
+    $("vaultStore").disabled = true;
+    sealVault(pw, { pem: keyPem, token: $("ghToken").value.trim(), repo: $("ghRepo").value.trim() }).then(function (v) {
+      localStorage.setItem(VAULT_KEY, JSON.stringify(v));
+      $("vaultNew").value = ""; $("vaultNew2").value = ""; $("vaultChk").checked = false; $("vaultFields").style.display = "none";
+      $("keyState").innerHTML = "<div class='ok'>اتحفظ على الجهاز ده ✓ — المرة الجاية اكتب كلمة السر بس</div>"; showVault();
+    }).catch(function () { $("keyState").innerHTML = "<div class='err'>تعذّر الحفظ — المتصفح مانع التخزين (وضع التصفح الخفي؟)</div>"; })
+      .then(function () { $("vaultStore").disabled = false; });
+  });
+  var unlock = function () {
+    var v = readVault(); if (!v) return;
+    $("vaultUnlock").disabled = true; $("keyState").innerHTML = "<div class='muted'>جاري الفتح…</div>";
+    openVault($("vaultPw").value, v).then(function (d) {
+      if (d.token && !$("ghToken").value.trim()) $("ghToken").value = d.token;
+      if (d.repo) $("ghRepo").value = d.repo;
+      $("vaultPw").value = "";
+      return useKeyPem(d.pem, "vault");
+    }).catch(function (err) { $("keyState").innerHTML = "<div class='err'>" + esc(err && err.message || "تعذّر الفتح") + "</div>"; })
+      .then(function () { $("vaultUnlock").disabled = false; });
+  };
+  $("vaultUnlock").addEventListener("click", unlock);
+  $("vaultPw").addEventListener("keydown", function (e) { if (e.key === "Enter") unlock(); });
+  $("vaultForget").addEventListener("click", function (e) {
+    e.preventDefault();
+    if (!window.confirm("مسح المفتاح المحفوظ من الجهاز ده؟ (الملف الأصلي عندك مش هيتأثر)")) return;
+    try { localStorage.removeItem(VAULT_KEY); } catch (err) { /* */ }
+    showVault();
+  });
+  showVault();
+
+  $("keyFile").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0]; e.target.value = "";
+    key = null; keyPem = ""; refresh(); showVault();
+    if (!file) return;
+    if (!(window.crypto && crypto.subtle)) { $("keyState").innerHTML = "<div class='err'>المتصفح ده مايدعمش التوقيع — افتح الصفحة في Chrome أو Edge حديث.</div>"; return; }
+    file.text().then(function (t) { return useKeyPem(t, "file"); }).catch(function (err) {
+      $("keyState").innerHTML = "<div class='err'>" + esc(err && err.message && /مفتاح/.test(err.message) ? err.message : "تعذّر قراءة المفتاح — لازم ملف .pem الخاص بأكواد التفعيل، وفي Chrome/Edge حديث") + "</div>";
+    });
+  });
+
+  $("gen").addEventListener("click", function () {
+    $("genErr").innerHTML = "";
+    var f = fields(); var upd = f.edition === "update"; var bad = upd ? validateUpdateFields(f) : validateFields(f);
+    if (bad) { $("genErr").innerHTML = "<div class='err'>" + esc(bad) + "</div>"; return; }
+    $("gen").disabled = true;
+    (upd ? signUpdatePayload(key, makeUpdatePayload(f)) : signPayload(key, makePayload(f))).then(function (r) {
+      var short = randomShortCode();
+      return sealLicenseCode(r.code, short).then(function (sealed) {
+        current = { code: r.code, payload: r.payload, short: short, id: sealed.id, text: sealed.text, uploaded: false };
+        $("out").value = r.code; $("short").textContent = formatShortCode(short); $("outCard").style.display = "";
+        var l = readLog(); l.push(upd ? { at: cairoToday(), n: r.payload.n, k: "update", m: r.payload.m, s: "", e: "نسخة " + r.payload.u, f: "", id: r.payload.id, short: formatShortCode(short), file: sealed.id }
+          : { at: cairoToday(), n: r.payload.n, k: r.payload.k, m: r.payload.m, s: r.payload.s, e: r.payload.e, f: r.payload.f.join(" "), id: r.payload.id, short: formatShortCode(short), file: sealed.id }); writeLog(l); renderLog();
+        current.msg = upd ? "كود تحديث برنامج Doctor M — " + r.payload.n + "\nبيفتح التحديثات لحد النسخة " + r.payload.u + "\n\nالكود: *" + formatShortCode(short) + "*\n\nمن البرنامج: الإعدادات ← التحديثات ← «إدخال كود التحديث» (من جهاز الأدمن)، وبعدها هيظهر إشعار «فيه تحديث جديد» ← «حدّث الآن»."
+          : "كود تفعيل برنامج Doctor M — " + r.payload.n + "\n" + (EDITION[r.payload.k] || "") + " — صالح من " + r.payload.s + " لحد " + r.payload.e + "\n\nالكود: *" + formatShortCode(short) + "*\n\nمن البرنامج: الإعدادات ← التفعيل والاشتراك ← اكتب الكود ← تفعيل";
+        upState();
+        if ($("ghToken").value.trim()) doUpload();
+      });
+    }).catch(function (err) { $("genErr").innerHTML = "<div class='err'>التوقيع فشل: " + esc(err && err.message || err) + "</div>"; })
+      .then(function () { $("gen").disabled = !key; });
+  });
+  var current = null;
+  function upState(msg, bad) {
+    if (!current) return;
+    $("upState").innerHTML = msg ? "<div class='" + (bad ? "err" : "ok") + "'>" + esc(msg) + "</div>"
+      : current.uploaded ? "<div class='ok'>اترفع على GitHub ✓ — الكود القصير شغّال (ممكن ياخد لحد 5 دقايق)</div>"
+      : "<div class='err'>الكود القصير مش هيشتغل غير بعد رفع الملف على GitHub (دوس «رفع على GitHub» أو نزّل الملف وارفعه بإيدك)</div>";
+  }
+  function doUpload() {
+    var token = $("ghToken").value.trim(), repo = $("ghRepo").value.trim();
+    if (!current) return;
+    if (!token) return upState("اكتب توكن GitHub الأول (أو نزّل ملف الكود وارفعه بإيدك)", true);
+    upState("جاري الرفع…");
+    githubUpload(token, repo, current.id, current.text).then(function () { current.uploaded = true; upState(); })
+      .catch(function (e) { upState("الرفع فشل: " + (e && e.message || e), true); });
+  }
+  $("upload").addEventListener("click", doUpload);
+  $("download").addEventListener("click", function () {
+    if (!current) return;
+    var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([current.text], { type: "text/plain" })); a.download = current.id + ".dml"; a.click();
+  });
+  $("copyShort").addEventListener("click", function () { if (current) copy(formatShortCode(current.short)); });
+  var copy = function (t) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).catch(function () { $("out").select(); document.execCommand("copy"); }); };
+  $("copyCode").addEventListener("click", function () { copy($("out").value); });
+  $("copyMsg").addEventListener("click", function () { if (current) copy(current.msg); });
+  $("exportLog").addEventListener("click", function () {
+    var rows = [["at", "clinic", "edition", "machine", "start", "end", "features", "id", "short", "file"]].concat(readLog().map(function (r) { return [r.at, r.n, r.k, r.m, r.s, r.e, r.f, r.id, r.short || "", r.file || ""]; }));
+    var csv = "﻿" + rows.map(function (r) { return r.map(function (c) { return '"' + String(c == null ? "" : c).replace(/"/g, '""') + '"'; }).join(","); }).join("\n");
+    var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "license-codes.csv"; a.click();
+  });
+  refresh(); renderLog();
+})();
+</script>
+</body>
+</html>
